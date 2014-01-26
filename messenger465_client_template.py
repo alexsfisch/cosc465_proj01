@@ -25,21 +25,30 @@ class MessageBoardNetwork(object):
         Constructor.  You should create a new socket
         here and do any other initialization.
         '''
-        pass
+	self.host = host
+	self.port = port
+	self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+	self.sock.bind(('0.0.0.0',1234))
 
     def getMessages(self):
         '''
         You should make calls to get messages from the message 
         board server here.
         '''
-        pass
+	strlist = []
+	for i in range(0,20):
+		(message,user) = self.sock.recvfrom(1500)
+		if message != "OK": 
+			strlist.append(message)
+	return strlist
 
     def postMessage(self, user, message):
         '''
         You should make calls to post messages to the message 
         board server here.
         '''
-        pass
+	messsage = "APOST" + user + "::" + message
+  	self.sock.send(message)
 
 
 class MessageBoardController(object):
