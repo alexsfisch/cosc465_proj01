@@ -146,8 +146,9 @@ class MessageBoardView(Tkinter.Frame):
         self.width = 80
         self.max_messages = 20
         self._createWidgets()
+	print("test")
         self.pack()
-
+	print("test2")
     def _createWidgets(self):
         self.message_list = Tkinter.Listbox(self, width=self.width, height=self.max_messages)
         self.message_list.pack(anchor="n")
