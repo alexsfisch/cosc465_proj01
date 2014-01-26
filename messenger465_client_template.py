@@ -35,11 +35,8 @@ class MessageBoardNetwork(object):
         You should make calls to get messages from the message 
         board server here.
         '''
-	strlist = []
-	for i in range(0,20):
-		(message,user) = self.sock.recvfrom(1500)
-		if message != "OK": 
-			strlist.append(message)
+	message = self.sock.recvfrom(1500)
+	strlist = messagedata.split('::')
 	return strlist
 
     def postMessage(self, user, message):
@@ -48,7 +45,20 @@ class MessageBoardNetwork(object):
         board server here.
         '''
 	messsage = "APOST" + user + "::" + message
-  	self.sock.send(message)
+
+	#check if user name is too long
+	if len(user) > 8 or len(user) == 0:
+		return "ERROR invalid username"
+	
+	#check if message is longer than 60 char
+	if len(message) > 60:
+		return "ERROR message is too long"
+	
+  	x = self.sock.send(message)
+	if x > 0:
+		return 0
+	else:
+		return 1
 
 
 class MessageBoardController(object):
@@ -75,7 +85,11 @@ class MessageBoardController(object):
         the message to the MessageBoardNetwork class via the
         postMessage method.
         '''
-        pass
+	x = postMessage(self.name, m)
+	if x == 0:
+		set_status("message posted successfully")	
+	else:
+		set_status("message post fail")
 
     def retrieve_messages(self):
         '''
@@ -96,7 +110,28 @@ class MessageBoardController(object):
         '''
         self.view.after(1000, self.retrieve_messages)
         messagedata = self.net.getMessages()
+	
+	finalMessages = []
+	
+	#check for OK or Error
+	tempCheck = strlist[0]
+	tempCheck = tempCheck.split(' ')
+	if tempCheck[0]=="ERROR":
+		self.view.setStatus("messages retrieved unsuccesfully")
+		return "ERROR"
 
+	strlist[0] = strlist[0][2:]
+	finalstr = []
+	tempstr = ""
+	x = 0
+	for i in range(len(strlist)):
+		tempstr.append(" " + strlist[i])
+		if (i % 3) == 2:
+			finalstr[x] = tempstr
+			finalstr = ""
+			x +=1
+	self.view.setListItems(finalstr)
+	self.view.setStatus("messages retrieved succesfully")
 
 class MessageBoardView(Tkinter.Frame):
     '''
