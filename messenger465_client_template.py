@@ -35,6 +35,7 @@ class MessageBoardNetwork(object):
         You should make calls to get messages from the message 
         board server here.
         '''
+	#need to send message first. look at assignment
 	message = self.sock.recvfrom(1500)
 	strlist = messagedata.split('::')
 	return strlist
@@ -44,7 +45,7 @@ class MessageBoardNetwork(object):
         You should make calls to post messages to the message 
         board server here.
         '''
-	messsage = "APOST" + user + "::" + message
+	messsage = "APOST" + user + "::" + message + "::"
 
 	#check if user name is too long
 	if len(user) > 8 or len(user) == 0:
@@ -109,6 +110,7 @@ class MessageBoardController(object):
         at the bottom of the GUI.
         '''
         self.view.after(1000, self.retrieve_messages)
+        print "In retrieve messages"
         messagedata = self.net.getMessages()
 	
 	finalMessages = []
@@ -146,9 +148,7 @@ class MessageBoardView(Tkinter.Frame):
         self.width = 80
         self.max_messages = 20
         self._createWidgets()
-	print("test")
         self.pack()
-	print("test2")
     def _createWidgets(self):
         self.message_list = Tkinter.Listbox(self, width=self.width, height=self.max_messages)
         self.message_list.pack(anchor="n")
