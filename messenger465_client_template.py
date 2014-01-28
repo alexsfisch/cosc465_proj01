@@ -8,7 +8,8 @@ A simple model-view controller-based message board/chat client application.
 import sys
 import Tkinter
 import socket
-from select import select
+#from select import select
+import select
 import argparse
 
 
@@ -27,8 +28,7 @@ class MessageBoardNetwork(object):
         '''
 	self.host = host
 	self.port = port
-	self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-	self.sock.bind(('0.0.0.0',1234))
+	self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def getMessages(self):
         '''
@@ -36,16 +36,29 @@ class MessageBoardNetwork(object):
         board server here.
         '''
 	#need to send message first. look at assignment
-	message = self.sock.recvfrom(1500)
-	strlist = messagedata.split('::')
-	return strlist
+	x = self.sock.sendto("AGET", (self.host, self.port))
+ 	#If number of bytes sent is not exactly AGET
+	if (x!=4):
+		return "ERROR"
+
+
+	#select call
+	readlist = [self.sock]
+	(inputready, outputready, exceptready) = select.select(readlist, [], [], .1)	
+
+
+	for i in inputready:
+		message = self.sock.recvfrom(1500)
+		print message
+		strlist = message[0].split('::')
+		return strlist
 
     def postMessage(self, user, message):
         '''
         You should make calls to post messages to the message 
         board server here.
         '''
-	messsage = "APOST" + user + "::" + message + "::"
+	messsage = "APOST " + user + "::" + message
 
 	#check if user name is too long
 	if len(user) > 8 or len(user) == 0:
@@ -55,8 +68,10 @@ class MessageBoardNetwork(object):
 	if len(message) > 60:
 		return "ERROR message is too long"
 	
-  	x = self.sock.send(message)
-	if x > 0:
+	print messsage
+  	#x = self.sock.send(message)
+	x = self.sock.sendto(message, (self.host, self.port))
+	if x==len(message):
 		return 0
 	else:
 		return 1
@@ -86,11 +101,11 @@ class MessageBoardController(object):
         the message to the MessageBoardNetwork class via the
         postMessage method.
         '''
-	x = postMessage(self.name, m)
+	x = self.net.postMessage(self.name, m)
 	if x == 0:
-		set_status("message posted successfully")	
+		self.view.setStatus("message posted successfully")	
 	else:
-		set_status("message post fail")
+		self.view.setStatus("message post fail")
 
     def retrieve_messages(self):
         '''
@@ -113,24 +128,38 @@ class MessageBoardController(object):
         print "In retrieve messages"
         messagedata = self.net.getMessages()
 	
+	print messagedata
+	if messagedata[:3] == "AGET":
+		return 0
+
+	#no new messages on server
+
+	if messagedata[0] == "AOK ":
+		print "NO NEW MESSAGES ON SERVER"
+		return 0
 	finalMessages = []
-	
 	#check for OK or Error
-	tempCheck = strlist[0]
+	tempCheck = messagedata[0]
 	tempCheck = tempCheck.split(' ')
 	if tempCheck[0]=="ERROR":
 		self.view.setStatus("messages retrieved unsuccesfully")
 		return "ERROR"
-
-	strlist[0] = strlist[0][2:]
-	finalstr = []
+	#print "messagedata[0]:  " + messagedata[0]
+	messagedata[0] = messagedata[0][3:]
+	print "messagedata[0]:  " + messagedata[0]
+	print "messagedata[1]:  " + messagedata[1]
+	print "messagedata[2]:  " + messagedata[2]
+	final = []
 	tempstr = ""
 	x = 0
-	for i in range(len(strlist)):
-		tempstr.append(" " + strlist[i])
+	for i in range(len(messagedata)):
+		print (i%3)
+		tempstr += " " + messagedata[i]
+		print tempstr
 		if (i % 3) == 2:
-			finalstr[x] = tempstr
-			finalstr = ""
+			print "tempstr:   " + tempstr
+			final[x] = tempstr
+			tempstr = ""
 			x +=1
 	self.view.setListItems(finalstr)
 	self.view.setStatus("messages retrieved succesfully")
