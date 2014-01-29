@@ -11,6 +11,7 @@ import socket
 #from select import select
 import select
 import argparse
+import time
 
 
 class MessageBoardNetwork(object):
@@ -58,20 +59,23 @@ class MessageBoardNetwork(object):
         You should make calls to post messages to the message 
         board server here.
         '''
-	messsage = "APOST " + user + "::" + message
-
-	#check if user name is too long
-	if len(user) > 8 or len(user) == 0:
-		return "ERROR invalid username"
+	messageFinal = "APOST " + user + "::" + message
+	#print "message that should be sent" + messageFinal
+	#check if user name is too long THIS DOESNT WORKKKKKKKK
+	if len(user) > 8 or len(user) == 0 or "::" in user:
+		return -2
 	
 	#check if message is longer than 60 char
-	if len(message) > 60:
-		return "ERROR message is too long"
+	if len(message) >= 60:
+		return -1 
 	
-	print messsage
-  	#x = self.sock.send(message)
-	x = self.sock.sendto(message, (self.host, self.port))
-	if x==len(message):
+	
+	x = self.sock.sendto(messageFinal, (self.host, self.port))
+	print x
+	print len(messageFinal)
+	##print "sent the following message:" + messageFinal
+	##print "sent to: host:   " + str(self.host) + "  port:   " + str(self.port)
+	if x==len(messageFinal):
 		return 0
 	else:
 		return 1
@@ -103,9 +107,16 @@ class MessageBoardController(object):
         '''
 	x = self.net.postMessage(self.name, m)
 	if x == 0:
-		self.view.setStatus("message posted successfully")	
+		self.view.setStatus("Message posted successfully")	
+	elif x == -1:
+		self.view.setStatus("Message longer 60 characters.")
+		return "ERROR Message too long"	
+	elif x == -2:
+		self.view.setStatus("Username invalid.")
+		return "ERROR Username invalid."
 	else:
-		self.view.setStatus("message post fail")
+		print "FAILFAILFAIL"
+		self.view.setStatus("Message post fail")
 
     def retrieve_messages(self):
         '''
@@ -125,44 +136,41 @@ class MessageBoardController(object):
         at the bottom of the GUI.
         '''
         self.view.after(1000, self.retrieve_messages)
-        print "In retrieve messages"
+        ##print "In retrieve messages"
+	before = time.time()
         messagedata = self.net.getMessages()
-	
-	print messagedata
-	if messagedata[:3] == "AGET":
-		return 0
-
-	#no new messages on server
-
-	if messagedata[0] == "AOK ":
-		print "NO NEW MESSAGES ON SERVER"
-		return 0
-	finalMessages = []
+	elapsed = time.time() - before
+	print "That took",elapsed
 	#check for OK or Error
 	tempCheck = messagedata[0]
 	tempCheck = tempCheck.split(' ')
 	if tempCheck[0]=="ERROR":
-		self.view.setStatus("messages retrieved unsuccesfully")
+		self.view.setStatus("Messages retrieved unsuccesfully :(")
 		return "ERROR"
-	#print "messagedata[0]:  " + messagedata[0]
+
+	##print messagedata
+	if messagedata[:3] == "AGET":
+		return 0
+
+	#no new messages on server
+	if messagedata[0] == "AOK ":
+		print "NO NEW MESSAGES ON SERVER"
+		return 0
+	finalMessages = []
+
 	messagedata[0] = messagedata[0][3:]
-	print "messagedata[0]:  " + messagedata[0]
-	print "messagedata[1]:  " + messagedata[1]
-	print "messagedata[2]:  " + messagedata[2]
 	final = []
 	tempstr = ""
 	x = 0
 	for i in range(len(messagedata)):
-		print (i%3)
 		tempstr += " " + messagedata[i]
-		print tempstr
+		print i 
 		if (i % 3) == 2:
 			print "tempstr:   " + tempstr
-			final[x] = tempstr
+			final.append(tempstr)
 			tempstr = ""
-			x +=1
-	self.view.setListItems(finalstr)
-	self.view.setStatus("messages retrieved succesfully")
+	self.view.setListItems(final)
+	self.view.setStatus("Retrieved " + str(len(final)) + " messages succesfully :)")
 
 class MessageBoardView(Tkinter.Frame):
     '''
