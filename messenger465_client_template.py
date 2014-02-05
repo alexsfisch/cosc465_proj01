@@ -64,12 +64,19 @@ class MessageBoardNetwork(object):
 		return -1 
 	
 	x = self.sock.sendto(messageFinal, (self.host, self.port))
-	if x==len(messageFinal):
-		return 0
-	else:
-		return 1
 
 
+	(inputready, outputready, exceptready) = select.select([self.sock], [], [], .1)	
+
+	for i in inputready:
+		print ("*" * 50)
+		message = self.sock.recvfrom(1500)
+		print message[0]
+		if message[0] == "AERROR":
+			raise Exception("Sent message and got AERROR in return")
+			return -3
+
+	return 0
 class MessageBoardController(object):
     '''
     Controller class in MVC pattern that coordinates
@@ -105,6 +112,9 @@ class MessageBoardController(object):
 	elif x == -2:
 		self.view.setStatus("Username invalid.")
 		return "ERROR Username invalid."
+	elif x == -3:
+		self.view.setStatus("Message posted successfully")
+		return "Sent message and got AERROR in return"
 	else:
 		print "FAILFAILFAIL"
 		self.view.setStatus("Message post fail")
